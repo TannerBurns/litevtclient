@@ -4,8 +4,7 @@
 
     Pros:
         Ability to scale with load. 
-        The more resources to retrieve the more resources that will be 
-        allocated to the load balancer
+        The more resources to retrieve the more resources that will be allocated to the load balancer
     
     Current Functionality:
         Pull reports for a list of hashes
@@ -13,6 +12,7 @@
 # Requirements
 
 	go get github.com/TannerBurns/litebalancer/litebalancer
+	go get github.com/Tannerburns/litevtclient/vtclient
 
 # Example
 
@@ -72,5 +72,4 @@ func main() {
 		log.Fatal(err)
 	}
 }
-
 ```
