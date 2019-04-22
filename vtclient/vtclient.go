@@ -67,6 +67,7 @@ func (vt *VtClient) GetReports(hashlist []string) (
 	Reports,
 	error,
 ) {
+        const numWorkers = 25
 	const CHUNK = 24
 	var groups = [][]string{}
 
@@ -83,7 +84,6 @@ func (vt *VtClient) GetReports(hashlist []string) (
 	}
 
 	numRequesters := len(groups)
-	numWorkers := numRequesters / 2
 
 	rq, err := litebalancer.NewRequester(vt.GetReport)
 	if err != nil {
