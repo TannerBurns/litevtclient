@@ -104,5 +104,6 @@ func (vt *VtClient) GetReports(hashlist []string) (
 	).Balance(
 		rq.Work,
 	)
+	time.Sleep(1 * time.Second)
 	return vt.Reports, nil
 }

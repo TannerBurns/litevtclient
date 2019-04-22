@@ -42,7 +42,6 @@ import (
 	"io/ioutil"
 	"log"
 	"strings"
-	"time"
 
 	"github.com/TannerBurns/litevtclient/vtclient"
 )
@@ -62,7 +61,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	time.Sleep(1 * time.Second)
 	byteOut, err := json.MarshalIndent(reports, "", "    ")
 	if err != nil {
 		log.Fatal(err)
