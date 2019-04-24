@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -16,9 +17,130 @@ type VtClient struct {
 	Reports Reports
 }
 
+type SearchResponse struct {
+	Hashes []string `json:"hashes"`
+	Offset string   `json:"next_page"`
+}
+
 type ReportResponse map[string]interface{}
 
 type Reports map[string]map[string]interface{}
+
+type SearchParams struct {
+	ApiKey string `json:"apikey"`
+	Query  string `json:"query"`
+	Page   string `json:"offset"`
+}
+
+func (vt *VtClient) Search(query string, maxResults ...int) (
+	searchResults []string,
+	err error,
+) {
+	searchUrl := "https://www.virustotal.com/vtapi/v2/file/search"
+	max := -1
+	if len(maxResults) == 1 {
+		max = maxResults[0]
+	}
+
+	offset := ""
+	for {
+		sr := SearchResponse{}
+		resp, err := http.PostForm(
+			searchUrl,
+			url.Values{
+				"apikey": {vt.VtKey},
+				"query":  {query},
+				"offset": {offset},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		json.NewDecoder(resp.Body).Decode(&sr)
+		if len(sr.Hashes) == 0 && sr.Offset == "" {
+			break
+		} else if sr.Offset == "" {
+			for i := range sr.Hashes {
+				searchResults = append(searchResults, sr.Hashes[i])
+			}
+			break
+		} else {
+			for i := range sr.Hashes {
+				searchResults = append(searchResults, sr.Hashes[i])
+			}
+			if max != -1 && len(searchResults) >= max {
+				break
+			}
+			offset = sr.Offset
+		}
+
+	}
+
+	if max != -1 {
+		return searchResults[:max], nil
+	}
+
+	return
+}
+
+func (vt *VtClient) IntelligenceSearch(query string, maxResults ...int) (
+	searchResults []string,
+	err error,
+) {
+	client := &http.Client{}
+	url := "https://www.virustotal.com/intelligence/search/programmatic/"
+	max := -1
+	if len(maxResults) == 1 {
+		max = maxResults[0]
+	}
+
+	offset := ""
+	for {
+		sr := SearchResponse{}
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Add("Accept-Encoding", "gzip, deflate")
+		req.Header.Add("User-Agent", "Golang LiteVtClient")
+
+		q := req.URL.Query()
+		q.Add("apikey", vt.VtKey)
+		q.Add("query", query)
+		q.Add("page", offset)
+		req.URL.RawQuery = q.Encode()
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+		json.NewDecoder(resp.Body).Decode(&sr)
+
+		if len(sr.Hashes) == 0 && sr.Offset == "" {
+			break
+		} else if sr.Offset == "" {
+			for i := range sr.Hashes {
+				searchResults = append(searchResults, sr.Hashes[i])
+			}
+			break
+		} else {
+			for i := range sr.Hashes {
+				searchResults = append(searchResults, sr.Hashes[i])
+			}
+			if max != -1 && len(searchResults) >= max {
+				break
+			}
+			offset = sr.Offset
+		}
+
+	}
+
+	if max != -1 && len(searchResults) > max {
+		return searchResults[:max], nil
+	}
+
+	return
+}
 
 func (vt *VtClient) GetReport(args []interface{}) interface{} {
 	client := &http.Client{}
@@ -36,7 +158,7 @@ func (vt *VtClient) GetReport(args []interface{}) interface{} {
 	q := req.URL.Query()
 	q.Add("apikey", vt.VtKey)
 	q.Add("resource", strings.Join(hashes, ","))
-	//q.Add("allinfo", "1")
+	q.Add("allinfo", "1")
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := client.Do(req)
@@ -67,7 +189,7 @@ func (vt *VtClient) GetReports(hashlist []string) (
 	Reports,
 	error,
 ) {
-        const numWorkers = 25
+	const numWorkers = 25
 	const CHUNK = 24
 	var groups = [][]string{}
 

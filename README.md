@@ -8,6 +8,8 @@
     
     Current Functionality:
         Pull reports for a list of hashes
+		Search VT based on query
+		Search VT Intelligence route based on query
 
 # Requirements
 
@@ -39,6 +41,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"strings"
@@ -47,10 +50,12 @@ import (
 )
 
 func main() {
-	hashesPath := "./hashes.txt"
 	client := vtclient.VtClient{
 		VtKey: "VIRUSTOTALAPIKEY",
 	}
+
+	// example of how to pull reports for a list of hashes
+	hashesPath := "./hashes.txt"
 	raw, err := ioutil.ReadFile(hashesPath)
 	if err != nil {
 		log.Fatal(err)
@@ -69,5 +74,29 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Private API only search, page size = 300
+	// example of how to search for a list of hashes based on a query
+	// optional parameter: maxResults
+	hashes, err := client.Search(
+		"type:executable positives:65+ sources:3+ ls:2019-04-23+",
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(len(hashes))
+
+	// Private API and Intelligence account search, page size = 25
+	// This search method does not count against API usage
+	// example of how to search for a list of hashes based on a query
+	// optional parameter: maxResults
+	hashes, err = client.IntelligenceSearch(
+		"type:executable positives:65+ sources:3+ ls:2019-04-23+",
+		200,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(len(hashes))
 }
 ```
